@@ -1,32 +1,28 @@
 import * as k8s from "@pulumi/kubernetes";
 
-const appLabels = { app: "nginx" };
+const zapLabels = { app: "zap" };
 
-const service = new k8s.core.v1.Service("nginx", {
+const zapService = new k8s.core.v1.Service("zap", {
     spec: {
         type: 'LoadBalancer',
-        ports: [{ port: 8080, protocol: 'TCP', targetPort: 80 }],
-        selector: appLabels
+        ports: [{ port: 8090, protocol: 'TCP', targetPort: 8090 }],
+        selector: zapLabels
     }
 });
 
-const deployment = new k8s.apps.v1.Deployment("nginx", {
+const zapDaemon = new k8s.core.v1.Pod("zap-daemon", {
+    metadata: {
+        name: "zap-daemon",
+        labels: zapLabels,
+    },
     spec: {
-        selector: { matchLabels: appLabels },
-        replicas: 1,
-        template: {
-            metadata: { labels: appLabels },
-            spec: { 
-                containers: [
-                    { 
-                        name: "nginx", 
-                        image: "nginx:1.19.4-alpine", 
-                        ports: [{containerPort: 80}]
-                    }
-                ] 
-            }
-        }
+        containers: [{ 
+            name: "zap",                     
+            image: "owasp/zap2docker-stable:2.9.0",
+            command: ['zap.sh', '-daemon', '-port', '8090'],
+            ports: [{containerPort: 8090}]
+        }]
     }
 });
 
-export const name = deployment.metadata.name;
+export const zap = zapDaemon.metadata.name;
