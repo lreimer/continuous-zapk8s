@@ -1,28 +1,96 @@
 import * as k8s from "@pulumi/kubernetes";
 
-const zapLabels = { app: "zap" };
+const zapNamespace = new k8s.core.v1.Namespace("zap", {
+    metadata: { name: 'zap' }
+});
 
-const zapService = new k8s.core.v1.Service("zap", {
+const zapGuiService = new k8s.core.v1.Service("zap-gui", {
+    metadata: {
+        namespace: zapNamespace.metadata.name
+    },
     spec: {
-        type: 'LoadBalancer',
-        ports: [{ port: 8090, protocol: 'TCP', targetPort: 8090 }],
-        selector: zapLabels
+        type: 'NodePort',
+        ports: [
+            { name: 'proxy', port: 8090, protocol: 'TCP', targetPort: 8090 },
+            { name: 'http', port: 8080, protocol: 'TCP', targetPort: 8080 },
+        ],
+        selector: { app: "zap", mode: "gui" }
     }
 });
 
-const zapDaemon = new k8s.core.v1.Pod("zap-daemon", {
+const zapGui = new k8s.core.v1.Pod("zap-gui", {
     metadata: {
-        name: "zap-daemon",
-        labels: zapLabels,
+        name: "zap-gui",
+        namespace: zapNamespace.metadata.name,
+        labels: { app: "zap", mode: "gui" },
+    },
+    spec: {
+        containers: [{ 
+            name: "zap-webswing",
+            image: "owasp/zap2docker-stable:2.9.0",
+            command: ['zap-webswing.sh'],
+            ports: [
+                { containerPort: 8080 },
+                { containerPort: 8090 },
+            ]
+        }]
+    }
+});
+
+const zapApiService = new k8s.core.v1.Service("zap-api", {
+    metadata: {
+        namespace: zapNamespace.metadata.name
+    },
+    spec: {
+        type: 'LoadBalancer',
+        ports: [
+            { name: 'api', port: 9080, protocol: 'TCP', targetPort: 9080 },
+        ],
+        selector: { app: "zap", mode: "api" }
+    }
+});
+
+const zapApiDaemon = new k8s.core.v1.Pod("zap-api", {
+    metadata: {
+        name: "zap-api",
+        namespace: zapNamespace.metadata.name,
+        labels: { app: "zap", mode: "api" }
     },
     spec: {
         containers: [{ 
             name: "zap",                     
             image: "owasp/zap2docker-stable:2.9.0",
-            command: ['zap.sh', '-daemon', '-port', '8090'],
-            ports: [{containerPort: 8090}]
+            command: ['zap.sh', '-daemon', 
+                      '-port', '9080', 
+                      '-host', '0.0.0.0', 
+                      '-config', 'api.addrs.addr.name=.*',
+                      '-config', 'api.addrs.addr.regex=true', 
+                      '-config', 'api.key=1qay2wsx3edc'],
+            ports: [{ containerPort: 9080 }]
         }]
     }
 });
 
-export const zap = zapDaemon.metadata.name;
+const apiScanCronJob = new k8s.batch.v1beta1.CronJob("zap-api-scan", {
+    metadata: {
+        name: "zap-api-scan",
+        namespace: zapNamespace.metadata.name
+    },
+    spec: {
+        schedule: "*/1 * * * *",
+        jobTemplate: {
+            spec: {
+                template: {
+                    spec: {
+                        containers: [{
+                            name: "zap",
+                            image: "owasp/zap2docker-weekly:latest",
+                            args: ["zap-api-scan.py", "-t", "http://microservice.default.svc.cluster.local:8080/openapi/", "-f", "openapi"],
+                        }],
+                        restartPolicy: "Never",
+                    }
+                }
+            }
+        }
+    }
+});
