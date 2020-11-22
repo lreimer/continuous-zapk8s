@@ -27,7 +27,7 @@ const zapGui = new k8s.core.v1.Pod("zap-gui", {
     spec: {
         containers: [{ 
             name: "zap-webswing",
-            image: "owasp/zap2docker-stable:2.9.0",
+            image: "owasp/zap2docker-weekly:latest",
             command: ['zap-webswing.sh'],
             ports: [
                 { containerPort: 8080 },
@@ -59,7 +59,7 @@ const zapApiDaemon = new k8s.core.v1.Pod("zap-api", {
     spec: {
         containers: [{ 
             name: "zap",                     
-            image: "owasp/zap2docker-stable:2.9.0",
+            image: "owasp/zap2docker-weekly:latest",
             command: ['zap.sh', '-daemon', 
                       '-port', '9080', 
                       '-host', '0.0.0.0', 
