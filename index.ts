@@ -6,6 +6,7 @@ const zapNamespace = new k8s.core.v1.Namespace("zap", {
 
 const zapGuiService = new k8s.core.v1.Service("zap-gui", {
     metadata: {
+        name: "zap-gui",
         namespace: zapNamespace.metadata.name
     },
     spec: {
@@ -27,7 +28,7 @@ const zapGui = new k8s.core.v1.Pod("zap-gui", {
     spec: {
         containers: [{ 
             name: "zap-webswing",
-            image: "owasp/zap2docker-weekly:latest",
+            image: "owasp/zap2docker-stable:2.9.0",
             args: ['zap-webswing.sh'],
             ports: [
                 { containerPort: 8080 },
