@@ -90,8 +90,8 @@ const apiScanCronJob = new k8s.batch.v1beta1.CronJob("zap-api-scan", {
                                 "zap-api-scan.py", 
                                 "-t", "http://microservice.default.svc.cluster.local:8080/openapi/", 
                                 "-f", "openapi",
-                                "-l", "WARN", 
-                                "-s"
+                                "-l", "INFO",
+                                "-I"
                             ]
                         }],
                         restartPolicy: "Never",
@@ -101,6 +101,8 @@ const apiScanCronJob = new k8s.batch.v1beta1.CronJob("zap-api-scan", {
         }
     }
 });
+
+export const apiScanCronJobName = apiScanCronJob.metadata.name;
 
 const microservice = new k8s.core.v1.Service("microservice", {
     metadata: {
