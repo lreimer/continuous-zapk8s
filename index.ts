@@ -28,7 +28,7 @@ const zapGui = new k8s.core.v1.Pod("zap-gui", {
         containers: [{ 
             name: "zap-webswing",
             image: "owasp/zap2docker-weekly:latest",
-            command: ['zap-webswing.sh'],
+            args: ['zap-webswing.sh'],
             ports: [
                 { containerPort: 8080 },
                 { containerPort: 8090 },
@@ -60,7 +60,7 @@ const zapApiDaemon = new k8s.core.v1.Pod("zap-api", {
         containers: [{ 
             name: "zap",                     
             image: "owasp/zap2docker-weekly:latest",
-            command: ['zap.sh', '-daemon', 
+            args: ['zap.sh', '-daemon', 
                       '-port', '9080', 
                       '-host', '0.0.0.0', 
                       '-config', 'api.addrs.addr.name=.*',
@@ -77,19 +77,73 @@ const apiScanCronJob = new k8s.batch.v1beta1.CronJob("zap-api-scan", {
         namespace: zapNamespace.metadata.name
     },
     spec: {
-        schedule: "*/1 * * * *",
+        schedule: "*/5 * * * *",
         jobTemplate: {
             spec: {
+                ttlSecondsAfterFinished: 120,
                 template: {
                     spec: {
                         containers: [{
                             name: "zap",
                             image: "owasp/zap2docker-weekly:latest",
-                            args: ["zap-api-scan.py", "-t", "http://microservice.default.svc.cluster.local:8080/openapi/", "-f", "openapi"],
+                            args: [
+                                "zap-api-scan.py", 
+                                "-t", "http://microservice.default.svc.cluster.local:8080/openapi/", 
+                                "-f", "openapi",
+                                "-l", "WARN", 
+                                "-s"
+                            ]
                         }],
                         restartPolicy: "Never",
                     }
                 }
+            }
+        }
+    }
+});
+
+const microservice = new k8s.core.v1.Service("microservice", {
+    metadata: {
+        name: 'microservice'
+    },
+    spec: {
+        type: 'NodePort',
+        ports: [
+            { name: 'http', port: 8080, protocol: 'TCP' },
+        ],
+        selector: { app: "microservice" }
+    }
+});
+
+const deployment = new k8s.apps.v1.Deployment("microservice", {
+    metadata: {
+        labels: { app: "microservice" }
+    },
+    spec: {
+        replicas: 2,
+        selector: {
+            matchLabels: { app: "microservice" }
+        },
+        template: {
+            metadata: {
+                labels:{ app: "microservice" }
+            },
+            spec: {
+                containers: [{
+                    name: 'microservice',
+                    image: 'lreimer/continuous-zapk8s:latest',
+                    ports: [
+                        { name: 'http', containerPort: 8080 }
+                    ],
+                    livenessProbe: {
+                        initialDelaySeconds: 30,
+                        httpGet: { port: 8080, path: '/health/liveness' }
+                    },
+                    readinessProbe: {
+                        initialDelaySeconds: 15,
+                        httpGet: { port: 8080, path: '/health/readiness' }
+                    }
+                }]
             }
         }
     }
