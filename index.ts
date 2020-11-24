@@ -40,6 +40,7 @@ const zapGui = new k8s.core.v1.Pod("zap-gui", {
 
 const zapApiService = new k8s.core.v1.Service("zap-api", {
     metadata: {
+        name: "zap-api",
         namespace: zapNamespace.metadata.name
     },
     spec: {

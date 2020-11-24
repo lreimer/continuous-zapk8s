@@ -4,6 +4,7 @@ import java.time.format.DateTimeFormatter
 
 plugins {
     id 'java'
+    id 'groovy'
     id 'war'
     id 'fish.payara.micro-gradle-plugin' version '1.0.3'
     id 'com.google.cloud.tools.jib' version '2.6.0'
@@ -23,6 +24,22 @@ dependencies {
     
     providedCompile platform('org.eclipse.microprofile:microprofile:3.3')    
     providedCompile 'org.eclipse.microprofile.config:microprofile-config-api'
+
+    testCompile 'org.zaproxy:zap-clientapi:1.8.0'
+
+    testCompile "org.codehaus.groovy:groovy:2.5.13"
+    testCompile platform("org.spockframework:spock-bom:2.0-M3-groovy-2.5")
+    testCompile "org.spockframework:spock-core"
+    testCompile "org.spockframework:spock-junit4"  // you can remove this if your code does not rely on old JUnit 4 rules
+
+    // optional dependencies for using Spock
+    testCompile "org.hamcrest:hamcrest-core:2.2"   // only necessary if Hamcrest matchers are used
+    testRuntime "net.bytebuddy:byte-buddy:1.10.10" // allows mocking of classes (in addition to interfaces)
+    testRuntime "org.objenesis:objenesis:3.1"      // allows mocking of classes without default constructor (together with ByteBuddy or CGLIB)
+}
+
+test {
+    useJUnitPlatform()
 }
 
 payaraMicro {
