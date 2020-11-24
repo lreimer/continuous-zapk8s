@@ -29,7 +29,7 @@ $ open http://localhost:$PORT/zap
 
 Another option is to use the ZAP API to programmatically connect, scan and attack your application targets:
 ```bash
-$ ./gradlew test -x
+$ ./gradlew test
 ```
 
 ### Continuous API Scan
