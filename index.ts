@@ -79,7 +79,7 @@ const apiScanCronJob = new k8s.batch.v1beta1.CronJob("zap-api-scan", {
         namespace: zapNamespace.metadata.name
     },
     spec: {
-        schedule: "*/5 * * * *",
+        schedule: "*/1 * * * *",
         jobTemplate: {
             spec: {
                 ttlSecondsAfterFinished: 120,
@@ -136,6 +136,7 @@ const deployment = new k8s.apps.v1.Deployment("microservice", {
                 containers: [{
                     name: 'microservice',
                     image: 'lreimer/continuous-zapk8s:latest',
+                    imagePullPolicy: 'Always',
                     ports: [
                         { name: 'http', containerPort: 8080 }
                     ],
