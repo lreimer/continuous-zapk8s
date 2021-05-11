@@ -10,7 +10,7 @@ const zapGuiService = new k8s.core.v1.Service("zap-gui", {
         namespace: zapNamespace.metadata.name
     },
     spec: {
-        type: 'NodePort',
+        type: 'LoadBalancer',
         ports: [
             { name: 'proxy', port: 8090, protocol: 'TCP', targetPort: 8090 },
             { name: 'http', port: 8080, protocol: 'TCP', targetPort: 8080 },
@@ -61,7 +61,7 @@ const zapApiDaemon = new k8s.core.v1.Pod("zap-api", {
     spec: {
         containers: [{ 
             name: "zap",                     
-            image: "owasp/zap2docker-weekly:latest",
+            image: "owasp/zap2docker-stable:2.10.0",
             args: ['zap.sh', '-daemon', 
                       '-port', '9080', 
                       '-host', '0.0.0.0', 
@@ -79,7 +79,7 @@ const apiScanCronJob = new k8s.batch.v1beta1.CronJob("zap-api-scan", {
         namespace: zapNamespace.metadata.name
     },
     spec: {
-        schedule: "*/1 * * * *",
+        schedule: "*/2 * * * *",
         jobTemplate: {
             spec: {
                 ttlSecondsAfterFinished: 120,
@@ -87,7 +87,7 @@ const apiScanCronJob = new k8s.batch.v1beta1.CronJob("zap-api-scan", {
                     spec: {
                         containers: [{
                             name: "zap",
-                            image: "owasp/zap2docker-weekly:latest",
+                            image: "owasp/zap2docker-stable:2.10.0",
                             args: [
                                 "zap-api-scan.py", 
                                 "-t", "http://microservice.default.svc.cluster.local:8080/openapi/", 
