@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: zap-gui
+  namespace: "zap"
+  labels:
+    app: "zap"
+    mode: "gui"
+spec:
+  containers:
+    - name: "zap-webswing"
+      image: "owasp/zap2docker-stable:2.10.0"
+      args: ['zap-webswing.sh']
+      ports:
+        - containerPort: 8080
+        - containerPort: 8090
